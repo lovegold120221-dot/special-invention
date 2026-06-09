@@ -33,8 +33,11 @@ brew install ffmpeg sox
 ## Step 1 — Clone the Repository
 
 ```bash
-git clone https://github.com/lovegold120221-dot/special-invention.git
+git clone --recurse-submodules https://github.com/lovegold120221-dot/special-invention.git
 cd special-invention
+
+# If you already cloned without --recurse-submodules:
+# git submodule update --init --recursive
 ```
 
 ## Step 2 — Install Dependencies
@@ -61,15 +64,40 @@ whisper --help
 
 ## Step 4 — Install Voicebox (Text-to-Speech)
 
-Voicebox runs as a local HTTP API at `http://127.0.0.1:17493`.
+### Option A — Via Submodule (Recommended for this fork)
 
-### Option A — macOS App (Recommended)
+The Voicebox Python backend is included as a git submodule at `voicebox/`.
+
+```bash
+# Navigate to the repo
+cd special-invention
+
+# Install Python dependencies
+./voicebox-server.sh setup
+
+# Start the server
+./voicebox-server.sh start
+```
+
+The server starts on `http://127.0.0.1:17493`.
+
+**Management commands:**
+
+| Command | What it does |
+|---------|-------------|
+| `./voicebox-server.sh start` | Start the server in background |
+| `./voicebox-server.sh stop` | Stop the server |
+| `./voicebox-server.sh status` | Check if running |
+| `./voicebox-server.sh log` | Follow server logs |
+| `./voicebox-server.sh setup` | Install/reinstall Python deps |
+
+### Option B — macOS App (Standalone)
 
 Download the latest release from https://voicebox.sh and install the `.app`.
 
 It auto-starts on login and serves the API on port 17493.
 
-### Option B — Docker (Alternative)
+### Option C — Docker
 
 ```bash
 docker run -d \
@@ -181,7 +209,21 @@ code paths.
 curl http://127.0.0.1:17493/health
 ```
 
-If this fails, start the Voicebox app or run via Docker.
+If this fails, check:
+
+- Is the server running? `./voicebox-server.sh status`
+- Check the logs: `./voicebox-server.sh log`
+- Are the dependencies installed? Run `./voicebox-server.sh setup`
+- Try the standalone macOS app from https://voicebox.sh
+- Or run via Docker: `docker run -d --name voicebox -p 17493:17493 voicebox/voicebox-server`
+
+### Voicebox submodule not found
+
+If the `voicebox/` directory is empty, you cloned without submodules:
+
+```bash
+git submodule update --init --recursive
+```
 
 ### TUI recording fails
 
@@ -246,6 +288,11 @@ Linux: `arecord` (from `alsa-utils`).
 | `packages/tui/src/component/prompt/index.tsx` | TUI mic toggle + state indicator |
 | `packages/ui/src/v2/components/icon.tsx` | Speaker/speaker-muted icons |
 | `packages/ui/src/components/icon.tsx` | Mic/stop icons |
+| `voicebox/` | Voicebox TTS server submodule ([jamiepine/voicebox](https://github.com/jamiepine/voicebox)) |
+| `voicebox-server.sh` | Manage script for the Voicebox submodule backend |
+| `setup-mac.sh` | Full automated macOS setup script |
+| `INSTALL.md` | This install guide |
+| `.env.example` | Environment variable template |
 
 ## Persistent Settings
 

@@ -24,8 +24,10 @@ set -euo pipefail
 
 REPO_URL="https://github.com/lovegold120221-dot/special-invention.git"
 CLONE_DIR="$HOME/special-invention"
+VOICEBOX_DIR="$CLONE_DIR/voicebox"
 WHISPER_MODEL="base"
 VOICEBOX_PORT=17493
+PYTHON="${PYTHON:-python3}"
 
 BOLD="\033[1m"
 GREEN="\033[0;32m"
@@ -102,19 +104,21 @@ else
   ok "whisper installed via pipx"
 fi
 
-# ─── Clone Repo ─────────────────────────────────────────────────────
+# ─── Clone Repo + Submodules ───────────────────────────────────────
 
-step "4. Cloning repository"
+step "4. Cloning repository (with voicebox submodule)"
 
 if [ -d "$CLONE_DIR" ]; then
   info "Directory $CLONE_DIR already exists — pulling latest..."
   cd "$CLONE_DIR"
   git pull
+  git submodule update --init --recursive
 else
-  git clone "$REPO_URL" "$CLONE_DIR"
+  git clone --recurse-submodules "$REPO_URL" "$CLONE_DIR"
   cd "$CLONE_DIR"
 fi
 ok "Repository at $CLONE_DIR ($(git rev-parse --short HEAD))"
+ok "Voicebox submodule at $VOICEBOX_DIR"
 
 # ─── Install Dependencies ───────────────────────────────────────────
 
@@ -145,20 +149,59 @@ else
   ok "Added STT env vars to $ZSHRC (run 'source ~/.zshrc' after install)"
 fi
 
-# ─── Voicebox ───────────────────────────────────────────────────────
+# ─── Voicebox Submodule Setup ──────────────────────────────────────
 
-step "7. Checking Voicebox (text-to-speech)"
+step "7. Installing Voicebox backend (text-to-speech)"
+
+VOICEBOX_VENV="$VOICEBOX_DIR/.venv"
 
 if curl -sf http://127.0.0.1:$VOICEBOX_PORT/health &>/dev/null; then
-  ok "Voicebox is running on port $VOICEBOX_PORT"
+  ok "Voicebox is already running on port $VOICEBOX_PORT"
 else
-  warn "Voicebox is NOT running."
-  echo ""
-  echo "  Download the macOS app from:  https://voicebox.sh"
-  echo "  Or run via Docker:"
-  echo "    docker run -d --name voicebox -p $VOICEBOX_PORT:$VOICEBOX_PORT voicebox/voicebox-server"
-  echo ""
-  echo "  After starting Voicebox, the app will connect automatically."
+  # Create virtual environment if needed
+  if [ ! -d "$VOICEBOX_VENV" ]; then
+    info "Creating Python virtual environment for Voicebox..."
+    "$PYTHON" -m venv "$VOICEBOX_VENV"
+    ok "Virtual env created"
+  fi
+
+  # Install backend dependencies
+  info "Installing Voicebox Python dependencies..."
+  "$VOICEBOX_VENV/bin/pip" install --quiet --upgrade pip setuptools wheel
+  "$VOICEBOX_VENV/bin/pip" install --quiet -r "$VOICEBOX_DIR/backend/requirements.txt"
+
+  # Install MLX deps on Apple Silicon
+  if [ "$(uname -m)" = "arm64" ]; then
+    info "Apple Silicon detected — installing MLX dependencies..."
+    "$VOICEBOX_VENV/bin/pip" install --quiet -r "$VOICEBOX_DIR/backend/requirements-mlx.txt"
+    "$VOICEBOX_VENV/bin/pip" install --quiet --no-deps mlx-audio==0.4.1 2>/dev/null || true
+  fi
+  ok "Voicebox dependencies installed"
+
+  # Launch Voicebox server in background
+  info "Starting Voicebox server on port $VOICEBOX_PORT..."
+  cd "$VOICEBOX_DIR"
+  nohup "$VOICEBOX_VENV/bin/python" -m backend.main \
+    --host 0.0.0.0 \
+    --port "$VOICEBOX_PORT" \
+    --data-dir "$VOICEBOX_DIR/data" \
+    > "$VOICEBOX_DIR/server.log" 2>&1 &
+  VOICEBOX_PID=$!
+  echo "$VOICEBOX_PID" > "$VOICEBOX_DIR/server.pid"
+  ok "Voicebox server starting (PID: $VOICEBOX_PID)"
+
+  # Wait for it to come up
+  info "Waiting for Voicebox to be ready..."
+  for i in $(seq 1 30); do
+    if curl -sf http://127.0.0.1:$VOICEBOX_PORT/health &>/dev/null; then
+      ok "Voicebox is ready!"
+      break
+    fi
+    sleep 2
+  done
+  if ! curl -sf http://127.0.0.1:$VOICEBOX_PORT/health &>/dev/null; then
+    warn "Voicebox did not start within 60s — check $VOICEBOX_DIR/server.log"
+  fi
 fi
 
 # ─── Verify ─────────────────────────────────────────────────────────
@@ -199,10 +242,15 @@ echo "  To start the TUI (terminal) app:"
 echo ""
 echo "    cd $CLONE_DIR/packages/tui"
 echo "    bun run dev"
-echo ""
-echo "  Keybind: ${BOLD}Alt+M${NC} to toggle microphone"
-echo "  TTS:     Speaker icon in header bar"
-echo ""
+  echo "  To stop/start Voicebox server:"
+  echo ""
+  echo "    $CLONE_DIR/voicebox-server.sh stop"
+  echo "    $CLONE_DIR/voicebox-server.sh start"
+  echo "    $CLONE_DIR/voicebox-server.sh log"
+  echo ""
+  echo "  Keybind: ${BOLD}Alt+M${NC} to toggle microphone"
+  echo "  TTS:     Speaker icon in header bar"
+  echo ""
 
 # Auto-launch desktop if on macOS with GUI
 if [ -n "${DISPLAY:-}" ] || [ -n "${WAYLAND_DISPLAY:-}" ] || pgrep -q "Dock"; then
