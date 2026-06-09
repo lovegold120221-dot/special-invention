@@ -346,57 +346,6 @@ export function SessionHeader() {
       <Show when={rightMount()}>
         {(mount) => (
           <Portal mount={mount()}>
-            <div class="flex items-center gap-0.5 mr-1">
-              <Show when={profiles().length > 0}>
-                <select
-                  value={ttsPrefs.profileId}
-                  onChange={(e) => setTtsPrefs("profileId", e.target.value)}
-                  class="h-5 max-w-[80px] rounded border-none bg-transparent px-0.5 text-[11px] text-v2-icon-icon-muted outline-none hover:text-text-base cursor-pointer appearance-none"
-                  disabled={!ttsPrefs.enabled}
-                  aria-label="TTS voice"
-                  title={profiles().find((p) => p.id === ttsPrefs.profileId)?.name ?? "Voice"}
-                >
-                  <option value="">Voice</option>
-                  <For each={profiles()}>
-                    {(p) => (
-                      <option value={p.id}>
-                        {p.name}
-                      </option>
-                    )}
-                  </For>
-                </select>
-              </Show>
-              <Show when={ttsPrefs.enabled}>
-                <select
-                  value={ttsPrefs.engine}
-                  onChange={(e) => setTtsPrefs("engine", e.target.value)}
-                  class="h-5 max-w-[70px] rounded border-none bg-transparent px-0.5 text-[11px] text-v2-icon-icon-muted outline-none hover:text-text-base cursor-pointer appearance-none"
-                  aria-label="TTS engine"
-                  title={ENGINES.find((e) => e.id === ttsPrefs.engine)?.name ?? "Engine"}
-                >
-                  <For each={ENGINES}>
-                    {(eng) => (
-                      <option value={eng.id}>{eng.name}</option>
-                    )}
-                  </For>
-                </select>
-              </Show>
-              <Tooltip placement="bottom" value={ttsPrefs.enabled ? "Disable TTS" : "Enable TTS"}>
-                <button
-                  type="button"
-                  class={`flex items-center justify-center size-6 rounded-md hover:bg-surface-hover-base outline-none shrink-0 ${
-                    ttsPrefs.enabled
-                      ? "text-accent-base"
-                      : "text-v2-icon-icon-muted"
-                  }`}
-                  onClick={() => setTtsPrefs("enabled", !ttsPrefs.enabled)}
-                  aria-label={ttsPrefs.enabled ? "Disable TTS" : "Enable TTS"}
-                  aria-pressed={ttsPrefs.enabled}
-                >
-                  <IconV2 name={ttsPrefs.enabled ? "speaker" : "speaker-muted"} class="size-4" />
-                </button>
-              </Tooltip>
-            </div>
             <Show
               when={isDesktopV2}
               fallback={
@@ -588,6 +537,57 @@ export function SessionHeader() {
             >
               <SessionHeaderV2Actions state={v2ActionsState()} />
             </Show>
+            <div class="flex items-center gap-0.5 shrink-0">
+              <Show when={profiles().length > 0}>
+                <select
+                  value={ttsPrefs.profileId}
+                  onChange={(e) => setTtsPrefs("profileId", e.target.value)}
+                  class="h-5 max-w-[80px] rounded border-none bg-transparent px-0.5 text-[11px] text-v2-icon-icon-muted outline-none hover:text-text-base cursor-pointer appearance-none"
+                  disabled={!ttsPrefs.enabled}
+                  aria-label="TTS voice"
+                  title={profiles().find((p) => p.id === ttsPrefs.profileId)?.name ?? "Voice"}
+                >
+                  <option value="">Voice</option>
+                  <For each={profiles()}>
+                    {(p) => (
+                      <option value={p.id}>
+                        {p.name}
+                      </option>
+                    )}
+                  </For>
+                </select>
+              </Show>
+              <Show when={ttsPrefs.enabled}>
+                <select
+                  value={ttsPrefs.engine}
+                  onChange={(e) => setTtsPrefs("engine", e.target.value)}
+                  class="h-5 max-w-[70px] rounded border-none bg-transparent px-0.5 text-[11px] text-v2-icon-icon-muted outline-none hover:text-text-base cursor-pointer appearance-none"
+                  aria-label="TTS engine"
+                  title={ENGINES.find((e) => e.id === ttsPrefs.engine)?.name ?? "Engine"}
+                >
+                  <For each={ENGINES}>
+                    {(eng) => (
+                      <option value={eng.id}>{eng.name}</option>
+                    )}
+                  </For>
+                </select>
+              </Show>
+              <Tooltip placement="bottom" value={ttsPrefs.enabled ? "Disable TTS" : "Enable TTS"}>
+                <button
+                  type="button"
+                  class={`flex items-center justify-center size-6 rounded-md hover:bg-surface-hover-base outline-none shrink-0 ${
+                    ttsPrefs.enabled
+                      ? "text-accent-base"
+                      : "text-v2-icon-icon-muted"
+                  }`}
+                  onClick={() => setTtsPrefs("enabled", !ttsPrefs.enabled)}
+                  aria-label={ttsPrefs.enabled ? "Disable TTS" : "Enable TTS"}
+                  aria-pressed={ttsPrefs.enabled}
+                >
+                  <IconV2 name={ttsPrefs.enabled ? "speaker" : "speaker-muted"} class="size-4" />
+                </button>
+              </Tooltip>
+            </div>
           </Portal>
         )}
       </Show>

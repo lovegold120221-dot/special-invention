@@ -1,3 +1,4 @@
 [submodule "voicebox"]
 	path = voicebox
 	url = https://github.com/jamiepine/voicebox.git
+	shallow = true
